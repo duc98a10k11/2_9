@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tạo Avatar với Khung</title>
+  <style>
+    body { 
+      font-family: sans-serif; 
+      text-align: center; 
+      padding: 20px; 
+      background: #f4f4f9;
+    }
+    canvas { 
+      max-width: 100%; 
+      border: 2px solid #ddd; 
+      margin-top: 20px; 
+      cursor: move;
+    }
+    .btn { 
+      padding: 10px 20px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      background: #4CAF50; 
+      color: white; 
+      font-size: 16px; 
+      margin: 5px;
+    }
+    .btn:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h2>📸 Tạo Avatar với Khung</h2>
+  <input type="file" id="upload" accept="image/*" class="btn">
+  <button class="btn" id="download">Tải Avatar</button>
+  <br>
+  <canvas id="canvas" width="600" height="600"></canvas>
+
+  <script>
+    const upload = document.getElementById('upload');
+    const download = document.getElementById('download');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const frame = new Image();
+    frame.src = "frame.png"; // file khung PNG trong suốt
+
+    let userImg = new Image();
+    let userX = 0, userY = 0;   // vị trí ảnh người dùng
+    let userScale = 1;          // nếu muốn thêm zoom
+    let dragging = false;
+    let offsetX, offsetY;
+
+    upload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        userImg.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    userImg.onload = () => {
+      // Đặt ảnh vào giữa canvas
+      userX = (canvas.width - userImg.width) / 2;
+      userY = (canvas.height - userImg.height) / 2;
+      drawCanvas();
+    };
+    frame.onload = () => drawCanvas();
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (userImg.src) {
+        ctx.drawImage(
+          userImg,
+          userX, userY,
+          userImg.width * userScale,
+          userImg.height * userScale
+        );
+      }
+      if (frame.src) {
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // --- Drag để di chuyển ảnh ---
+    canvas.addEventListener("mousedown", (e) => {
+      dragging = true;
+      offsetX = e.offsetX - userX;
+      offsetY = e.offsetY - userY;
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (dragging) {
+        userX = e.offsetX - offsetX;
+        userY = e.offsetY - offsetY;
+        drawCanvas();
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => dragging = false);
+    canvas.addEventListener("mouseleave", () => dragging = false);
+
+    // --- Tải ảnh về ---
+    download.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = "avatar.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+  </script>
+</body>
+</html>
