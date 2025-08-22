@@ -15,8 +15,9 @@
       max-width: 100%; 
       border: 2px solid #ddd; 
       margin-top: 20px; 
-      cursor: move;
+      cursor: grab;
     }
+    canvas:active { cursor: grabbing; }
     .btn { 
       padding: 10px 20px; 
       border: none; 
@@ -47,8 +48,8 @@
     frame.src = "frame.png"; // file khung PNG trong suốt
 
     let userImg = new Image();
-    let userX = 0, userY = 0;   // vị trí ảnh người dùng
-    let userScale = 1;          // nếu muốn thêm zoom
+    let userX = 0, userY = 0;   // vị trí ảnh
+    let userScale = 1;          // tỷ lệ zoom
     let dragging = false;
     let offsetX, offsetY;
 
@@ -63,9 +64,13 @@
     });
 
     userImg.onload = () => {
-      // Đặt ảnh vào giữa canvas
-      userX = (canvas.width - userImg.width) / 2;
-      userY = (canvas.height - userImg.height) / 2;
+      // đặt ảnh vào giữa canvas
+      userScale = Math.min(
+        canvas.width / userImg.width,
+        canvas.height / userImg.height
+      ); // fit vừa khung
+      userX = (canvas.width - userImg.width * userScale) / 2;
+      userY = (canvas.height - userImg.height * userScale) / 2;
       drawCanvas();
     };
     frame.onload = () => drawCanvas();
@@ -85,7 +90,7 @@
       }
     }
 
-    // --- Drag để di chuyển ảnh ---
+    // --- Drag để di chuyển ---
     canvas.addEventListener("mousedown", (e) => {
       dragging = true;
       offsetX = e.offsetX - userX;
@@ -103,7 +108,30 @@
     canvas.addEventListener("mouseup", () => dragging = false);
     canvas.addEventListener("mouseleave", () => dragging = false);
 
-    // --- Tải ảnh về ---
+    // --- Zoom bằng con lăn ---
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const scaleAmount = e.deltaY < 0 ? 1.05 : 0.95; // zoom in / out
+      const mouseX = e.offsetX;
+      const mouseY = e.offsetY;
+
+      // tính tọa độ trước khi zoom
+      const prevWidth = userImg.width * userScale;
+      const prevHeight = userImg.height * userScale;
+
+      userScale *= scaleAmount;
+
+      const newWidth = userImg.width * userScale;
+      const newHeight = userImg.height * userScale;
+
+      // giữ vị trí zoom theo con trỏ chuột
+      userX -= (mouseX - userX) * (newWidth / prevWidth - 1);
+      userY -= (mouseY - userY) * (newHeight / prevHeight - 1);
+
+      drawCanvas();
+    });
+
+    // --- Tải ảnh ---
     download.addEventListener('click', () => {
       const link = document.createElement('a');
       link.download = "avatar.png";
